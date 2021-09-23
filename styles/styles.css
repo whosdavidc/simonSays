@@ -73,6 +73,13 @@ body {
   left: calc(50% - 200px);
 }
 
+.btn-start.left {
+  left: calc(25% - 200px);
+}
+.btn-start.right {
+  left: calc(75% - 200px);
+}
+
 .hide {
   display: none;
 }
