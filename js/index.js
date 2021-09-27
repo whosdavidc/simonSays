@@ -9,8 +9,8 @@ class Juego {
     botonVerde,
     botonComenzar,
   }) {
-    this.elegirColor = this.elegirColor.bind(this)
-    this.avanzarNivel = this.avanzarNivel.bind(this)
+    this.manejarClickBotonColor = this.manejarClickBotonColor.bind(this)
+    this.comenzarNivel = this.comenzarNivel.bind(this)
     this.botonComenzar = botonComenzar
     this.botonesPorColor = {
       celeste: botonCeleste,
@@ -20,11 +20,42 @@ class Juego {
     }
   }
 
-  comenzar() {
+  comenzarJuego() {
     this.nivel = 1
-    this.generarSecuencia()
-    setTimeout(this.avanzarNivel, 500)
+    this.generarSecuenciaEsperada()
+    this.agregarEventosClick()
+    setTimeout(this.comenzarNivel, 500)
     this.toggleBotonComenzar()
+  }
+
+  terminarJuego(ganoElJuego) {
+    this.eliminarEventosClick()
+
+    if (ganoElJuego) {
+      return this.ganoElJuego()
+    } else {
+      return this.perdioElJuego()
+    }
+  }
+
+  avanzarNivel() {
+    // avanza
+    this.indiceActual++
+    if (this.indiceActual === this.nivel) {
+      this.nivel++
+      if (this.nivel > Juego.ULTIMO_NIVEL) {
+        this.terminarJuego(true)
+          // .then(this.terminarJuego.bind(this))
+          .then(() => this.comenzarJuego())
+      } else {
+        setTimeout(this.comenzarNivel, 1500)
+      }
+    }
+  }
+
+  comenzarNivel() {
+    this.indiceActual = 0
+    this.iluminarSecuencia()
   }
 
   toggleBotonComenzar() {
@@ -35,27 +66,23 @@ class Juego {
     }
   }
 
-  generarSecuencia() {
-    this.secuencia = new Array(Juego.ULTIMO_NIVEL).fill(0).map(n => Math.floor(Math.random() * 4))
+  generarSecuenciaEsperada() {
+    this.secuenciaEsperada = new Array(Juego.ULTIMO_NIVEL)
+      .fill(0)
+      .map(n => Math.floor(Math.random() * Juego.COLORS.length))
   }
 
-  avanzarNivel() {
-    this.subnivel = 0
-    this.iluminarSecuencia()
-    this.agregarEventosClick()
+  transformarIndiceAColor(indice) {
+    return Juego.COLORS[indice]
   }
 
-  transformarNumeroAColor(numero) {
-    return Juego.COLORS[numero]
-  }
-
-  transformarColorANumero(color) {
+  transformarColorAIndice(color) {
     return Juego.COLORS.indexOf(color)
   }
 
   iluminarSecuencia() {
     for (let i = 0; i < this.nivel; i++) {
-      const color = this.transformarNumeroAColor(this.secuencia[i])
+      const color = this.transformarIndiceAColor(this.secuenciaEsperada[i])
       setTimeout(() => this.iluminarColor(color), 1000 * i)
     }
   }
@@ -71,52 +98,42 @@ class Juego {
 
   agregarEventosClick() {
     Object.values(this.botonesPorColor)
-      .forEach(botonColor => botonColor.addEventListener('click', this.elegirColor))
+      .forEach(botonColor => botonColor.addEventListener('click', this.manejarClickBotonColor))
   }
 
   eliminarEventosClick() {
     Object.values(this.botonesPorColor)
-      .forEach(botonColor => botonColor.removeEventListener('click', this.elegirColor))
+      .forEach(botonColor => botonColor.removeEventListener('click', this.manejarClickBotonColor))
   }
 
-  elegirColor(event) {
+  manejarClickBotonColor(event) {
     // manejo click, ilumino el boton
-    const nombreColor = event.target.dataset.color
-    this.iluminarColor(nombreColor)
+    const color = event.target.dataset.color
+    this.iluminarColor(color)
 
     // en base al boton actual
-    const numeroColor = this.transformarColorANumero(nombreColor)
-    // si es correcto
-    if (numeroColor === this.secuencia[this.subnivel]) {
-      // avanza
-      this.subnivel++
-      if (this.subnivel === this.nivel) {
-        this.nivel++
-        this.eliminarEventosClick()
-        if (this.nivel === (Juego.ULTIMO_NIVEL + 1)) {
-          this.ganoElJuego()
-        } else {
-          setTimeout(this.avanzarNivel, 1500)
-        }
-      }
+    if (this.esBotonColorCorrecto(color)) {
+      this.avanzarNivel()
     } else {
       // si no es correcto
-      this.perdioElJuego()
+      this.terminarElJuego(false)
+        .then(() => this.comenzarJuego())
     }
   }
 
+  esBotonColorCorrecto(color) {
+    const indiceColor = this.transformarColorAIndice(color)
+
+    return indiceColor === this.secuenciaEsperada[this.indiceActual]
+  }
+
+
   ganoElJuego() {
-    swal('Simon Says', 'Felicitaciones, ganaste el juego!', 'success')
-      .then(() => this.comenzar())
+    return swal('Simon Says', 'Felicitaciones, ganaste el juego!', 'success')
   }
 
   perdioElJuego() {
-    swal('Simon Says', 'Lo lamentamos, perdiste :(', 'error')
-      .then(() => {
-        this.eliminarEventosClick()
-        this.comenzar()
-      })
-
+    return swal('Simon Says', 'Lo lamentamos, perdiste :(', 'error')
   }
 }
 
